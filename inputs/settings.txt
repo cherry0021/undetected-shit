@@ -1,0 +1,7 @@
+browser = 
+driver = ../chromedriver.exe
+chrome_version = 
+headless = 
+on_failure =
+captcha_extension = 
+proxy = 
