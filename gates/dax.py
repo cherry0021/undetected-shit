@@ -222,11 +222,3 @@ def process_check(cc):
             return data
 
     return req_two()
-
-
-# if __name__ == "__main__":
-
-#     reqUrl="https://ops1.operations.daxko.com/online/2153/OnlineGiving/Donation.mvc"
-#     # reqUrl="https://ipinfo.io/ip"
-#     check = process_check(reqUrl=reqUrl)
-#     print(check)
