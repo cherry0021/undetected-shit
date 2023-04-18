@@ -19,3 +19,4 @@ pandas
 fake_useragent
 httpx
 flask
+flask[async]
