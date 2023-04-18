@@ -1,5 +1,3 @@
-playwright
-playwright-stealth
 pydub
 vosk
 requests
