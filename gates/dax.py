@@ -92,7 +92,7 @@ async def solve(url):
             # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
             
             try:
-                proxy = {"server": get_enumproxy()}
+                proxy = {"server": "http://" + get_enumproxy()}
                 context = await playwright.firefox.launch_persistent_context(
                     headless=True,
                     proxy=proxy,
