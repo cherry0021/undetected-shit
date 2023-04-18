@@ -62,9 +62,9 @@ async def solve(url):
     ):
         port = random.randint(10100, 10120)
         port_rotate = random.randint(9000, 9002)
-        # username = "geonode_JFNTdE7PxE"
-        # password = "1c348b0d-606e-4a50-a71e-442329fc9212"
-        # GEONODE_DNS = f"premium-residential.geonode.com:{port}"
+        username = "geonode_JFNTdE7PxE"
+        password = "1c348b0d-606e-4a50-a71e-442329fc9212"
+        GEONODE_DNS = f"premium-residential.geonode.com:{port}"
         
         async with async_playwright() as playwright:
             tries = tries + 1
@@ -89,10 +89,10 @@ async def solve(url):
                 "--disable-audio-output",
                 "--slow_mo=50",
             ]
-            # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
+            proxy = {"server": GEONODE_DNS, "username": username, "password": password}
             
             try:
-                proxy = {"server": "http://" + get_enumproxy()}
+#                 proxy = {"server": "http://" + get_enumproxy()}
                 context = await playwright.firefox.launch_persistent_context(
                     headless=True,
                     proxy=proxy,
