@@ -1,4 +1,3 @@
 playwright install
 playwright install-deps
-pip install --upgrade pyee
 gunicorn --threads 4 --reload -b 0.0.0.0:8585 index:app 
