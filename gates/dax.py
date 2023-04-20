@@ -9,6 +9,11 @@ from fake_useragent import UserAgent
 import random
 import requests
 import re
+import time
+import json
+error_response = ['Invalid merchant information: 57-Terminal is not programmed for this service - call Customer Support',
+                  'captchaError'
+                  ]
 class dax_gate:
     page = None
     cc = None
@@ -54,78 +59,67 @@ def get_enumproxy():
 async def solve(url, p):
     user_data_dir = "~/tmp/user-data-dir"
     firefo_ext = f"{cdir}/firefox-extension/buster_captcha_solver-2.0.1.xpi"
-    tries = 0
-    token = None
+
+    page = None
+    port = random.randint(10100, 10120)
+    port_rotate = random.randint(9000, 9002)
+    username = "geonode_JFNTdE7PxE"
+    password = "1c348b0d-606e-4a50-a71e-442329fc9212"
+    GEONODE_DNS = f"premium-residential.geonode.com:{port}"
     
-    while (
-        token is None
-        or token.value is None
-        or token == ""
-        or isinstance(token, RecaptchaSolveError)
-    ):
-        page = None
-        port = random.randint(10100, 10120)
-        port_rotate = random.randint(9000, 9002)
-        username = "geonode_JFNTdE7PxE"
-        password = "1c348b0d-606e-4a50-a71e-442329fc9212"
-        GEONODE_DNS = f"premium-residential.geonode.com:{port}"
-        
-        async with async_playwright() as playwright:
-            tries = tries + 1
-            if tries > 5:
-                print("attempt exceeded")
-                exit()
-            ua = UserAgent()
-            args = [
-                "--deny-permission-prompts",
-                "--no-default-browser-check",
-                "--no-first-run",
-                "--deny-permission-prompts",
-                "--disable-popup-blocking",
-                "--ignore-certificate-errors",
-                "--no-service-autorun",
-                "--password-store=basic",
-                f"--user-agent={ua['Firefox']}",
-                "--headless=new",  # the new headless arg for chrome v109+. Use '--headless=chrome' as arg for browsers v94-108.
-                f"--disable-extensions-except={firefo_ext}",
-                f"--load-extension={firefo_ext}",
-                "--window-size=640,480",
-                "--disable-audio-output",
-                "--slow_mo=50",
-            ]
+    async with async_playwright() as playwright:
+        ua = UserAgent()
+        args = [
+            "--deny-permission-prompts",
+            "--no-default-browser-check",
+            "--no-first-run",
+            "--deny-permission-prompts",
+            "--disable-popup-blocking",
+            "--ignore-certificate-errors",
+            "--no-service-autorun",
+            "--password-store=basic",
+            f"--user-agent={ua['Firefox']}",
+            "--headless=new",  # the new headless arg for chrome v109+. Use '--headless=chrome' as arg for browsers v94-108.
+            f"--disable-extensions-except={firefo_ext}",
+            f"--load-extension={firefo_ext}",
+            "--window-size=640,480",
+            "--disable-audio-output",
+            "--slow_mo=50",
+        ]
 
-            proxy = {"server": "http://" + p}   
-            # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
-            context = await playwright.firefox.launch_persistent_context(
-                headless=True,
-                proxy=proxy,
-                args=args,
-                user_data_dir=user_data_dir,
-            )
-            page = await context.new_page()     
+        proxy = {"server": "http://" + p}   
+        # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
+        context = await playwright.firefox.launch_persistent_context(
+            headless=True,
+            proxy=proxy,
+            args=args,
+            user_data_dir=user_data_dir,
+        )
+        page = await context.new_page()     
+            
+        try:
+           
+
+            await page.goto(url, wait_until="networkidle", timeout=0)
+            await page.wait_for_load_state("networkidle", timeout=60000)
+
+            page.set_default_navigation_timeout(50000)
+            async with recaptchav2.AsyncSolver(page) as solver:
+                await page.wait_for_timeout(3000)
+                token = await solver.solve_recaptcha(attempts=4)
                 
-            try:
-               
-
-                await page.goto(url, wait_until="networkidle", timeout=0)
-                await page.wait_for_load_state("networkidle", timeout=60000)
-
-                page.set_default_navigation_timeout(50000)
-                async with recaptchav2.AsyncSolver(page) as solver:
-                    await page.wait_for_timeout(3000)
-                    token = await solver.solve_recaptcha(attempts=4)
-                    
-                await page.close()
-                await context.close()
-                return token
-            except RecaptchaSolveError as reError:
-                # await page.reload(timeout=0, wait_until="networkidle")
-                print(f"Captcha Error: {reError}")
-                await page.close()
-                await context.close()
-            except:
-                await page.close()
-                await context.close()
+            await page.close()
+            await context.close()
+            return token
+        except RecaptchaSolveError as reError:
+            # await page.reload(timeout=0, wait_until="networkidle")
+            print(f"Captcha Error: {reError}")
+            await page.close()
+            await context.close()
+            return "captchaError"
+        # except:
+        #     await page.close()
+        #     await context.close()
 
 
 
@@ -243,8 +237,16 @@ def process_check(cc):
                 
             return data
     b = None
-    while "reCAPTCHA could not be solved" in str(req_two) or b is None or "'latin-1' codec can't encode characters in position" in str(req_two):
+    err = True
+    
+    while err == True:
+        time.sleep(5)  # import time
         p = get_enumproxy()
         b = req_two()
-        return b
+        errormsg = find_between(b, '"error_message":"','"')
+        if errormsg in error_response:
+            err = True
+        else:
+            err = False
+    return b
     
