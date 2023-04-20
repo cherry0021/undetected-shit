@@ -39,7 +39,7 @@ app = Lumi()
 app.register(daxko, route="/daxko")
 
 
-app.runServer(host="127.0.0.1", port=8180)
+app.runServer(host="0.0.0.0", port=8585)
 # def daxko():
 #     daxko_info = request.get_json()
 #     response =  process_check(daxko_info['card'])
