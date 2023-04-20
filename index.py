@@ -17,8 +17,8 @@ from playwright_recaptcha import recaptchav2
 from lumi import Lumi
 import json
 
-def daxko(a):
-    return  dax(a)    
+def daxko(card):
+    return  json.dumps(dax(card))   
 
 app = Lumi()
 
