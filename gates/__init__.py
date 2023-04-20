@@ -1,0 +1,1 @@
+from gates.dax import process_all as dax

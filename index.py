@@ -11,16 +11,37 @@ from pydantic import BaseModel, Json
 import urllib
 import asyncio
 from urllib.parse import unquote
-from gates.dax import process_check as dax
+from gates.dax import process_all as dax_process_all
 from playwright.sync_api import sync_playwright
 from playwright_recaptcha import recaptchav2
 from lumi import Lumi
+import string
+import tempfile
 import json
+import psutil
+from gates.utils.browser_profile import generate_profile
 
-def daxko(card):
-    return  json.dumps(dax(card))   
+
+def terminate_session():
+    for proc in psutil.process_iter():
+        try:
+            if 'firefox' in proc.name() and 'playwright' in ' '.join(proc.cmdline()):
+                print('Firefox with Playwright is running')
+                proc.kill()
+                break
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    else:
+        print('Firefox with Playwright is not running')
+
+terminate_session()
+profile = generate_profile()
+#----------endpoints functions----------
+def daxko_gate(card):
+    return  json.dumps(dax_process_all(card, profile))   
 
 app = Lumi()
+
 
 
 # @app.route("/")
@@ -36,10 +57,34 @@ app = Lumi()
 # def daxs(a, b):
 #     return a + b
 
-app.register(daxko, route="/daxko")
+app.register(daxko_gate, route="/daxko")
 
 
-app.runServer(host="0.0.0.0", port=8585)
+
+
+
+
+app.runServer(host="0.0.0.0", port=8585, threads=16)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # def daxko():
 #     daxko_info = request.get_json()
 #     response =  process_check(daxko_info['card'])
