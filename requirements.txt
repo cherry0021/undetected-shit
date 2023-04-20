@@ -18,3 +18,4 @@ fake_useragent
 httpx
 flask
 flask[async]
+lumi
