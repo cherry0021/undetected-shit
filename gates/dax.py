@@ -1,6 +1,6 @@
 import httpx
 import os
-from playwright.sync_api import Playwright
+from playwright.sync_api import Playwright, Page
 from playwright.async_api import async_playwright
 from playwright_recaptcha import recaptchav2, RecaptchaSolveError
 import asyncio
@@ -49,17 +49,21 @@ def get_enumproxy():
     host = response['proxy']['host']
     port = response['proxy']['port']
     return f"{host}:{port}"
-async def solve(url):
+
+
+async def solve(url, p):
     user_data_dir = "~/tmp/user-data-dir"
     firefo_ext = f"{cdir}/firefox-extension/buster_captcha_solver-2.0.1.xpi"
     tries = 0
     token = None
+    
     while (
         token is None
         or token.value is None
         or token == ""
         or isinstance(token, RecaptchaSolveError)
     ):
+        page = None
         port = random.randint(10100, 10120)
         port_rotate = random.randint(9000, 9002)
         username = "geonode_JFNTdE7PxE"
@@ -89,17 +93,20 @@ async def solve(url):
                 "--disable-audio-output",
                 "--slow_mo=50",
             ]
-            proxy = {"server": GEONODE_DNS, "username": username, "password": password}
-            
+
+            proxy = {"server": "http://" + p}   
+            # proxy = {"server": GEONODE_DNS, "username": username, "password": password}
+            context = await playwright.firefox.launch_persistent_context(
+                headless=True,
+                proxy=proxy,
+                args=args,
+                user_data_dir=user_data_dir,
+            )
+            page = await context.new_page()     
+                
             try:
-#                 proxy = {"server": "http://" + get_enumproxy()}
-                context = await playwright.firefox.launch_persistent_context(
-                    headless=True,
-                    proxy=proxy,
-                    args=args,
-                    user_data_dir=user_data_dir,
-                )
-                page = await context.new_page()
+               
+
                 await page.goto(url, wait_until="networkidle", timeout=0)
                 await page.wait_for_load_state("networkidle", timeout=60000)
 
@@ -107,8 +114,10 @@ async def solve(url):
                 async with recaptchav2.AsyncSolver(page) as solver:
                     await page.wait_for_timeout(3000)
                     token = await solver.solve_recaptcha(attempts=4)
-                    return token
-
+                    
+                await page.close()
+                await context.close()
+                return token
             except RecaptchaSolveError as reError:
                 # await page.reload(timeout=0, wait_until="networkidle")
                 print(f"Captcha Error: {reError}")
@@ -117,8 +126,7 @@ async def solve(url):
             except:
                 await page.close()
                 await context.close()
-        await page.close()
-        await context.close()
+
 
 
 def find_between(data, first, last):
@@ -131,13 +139,16 @@ def find_between(data, first, last):
 
 
 def process_check(cc):
+    p=get_enumproxy()
     reqUrl = getUrl()
     donotion = None
     reqver = None
     insta = None
     gResponse = None
     client = requests.session()
-
+    proxies = {"http": "http://" + p,
+              "https": "http://" + p} 
+    client.proxies = proxies
     def req_one():
         headersList = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0",
@@ -163,7 +174,7 @@ def process_check(cc):
         reqver, donotion, insta, cookies = req_one()
 
         # insta = insta.split('-')[1]
-        gResponse = asyncio.run(solve(reqUrl))
+        gResponse = asyncio.run(solve(reqUrl, p))
         if gResponse:
             print(reqver)
             print(donotion)
@@ -219,6 +230,12 @@ def process_check(cc):
             # respo = await get_response(navigate)
 
             print(data)
+            
+                
             return data
-
-    return req_two()
+    b = None
+    while "reCAPTCHA could not be solved" in str(req_two) or b is None:
+        p = get_enumproxy()
+        b = req_two()
+        return b
+    
