@@ -8,7 +8,7 @@ from randomuser import RandomUser
 from fake_useragent import UserAgent
 import random
 import requests
-
+import re
 class dax_gate:
     page = None
     cc = None
@@ -136,7 +136,16 @@ def find_between(data, first, last):
         return data[start:end]
     except ValueError:
         return None
+# def get_user():
+#     user = RandomUser({"Country": "United States"})
+#     _name = user.get_full_name()
+#     latin_pattern = re.compile(r'^[a-zA-Z\s]+$') # Matches one or more letter from A-Z (lowercase or uppercase) and whitespace
 
+#     while latin_pattern.match(_name):
+#          user = RandomUser({"Country": "United States"})
+#          _name = user.get_full_name()
+#          latin_pattern = re.compile(r'^[a-zA-Z\s]+$')
+#     return user
 
 def process_check(cc):
     p=get_enumproxy()
@@ -180,7 +189,7 @@ def process_check(cc):
             print(donotion)
             print(insta)
 
-            user = RandomUser({"Country": "United States"})
+            user = RandomUser()
             name = user.get_full_name()
             fname = user.get_first_name()
             lname = user.get_last_name()
@@ -234,7 +243,7 @@ def process_check(cc):
                 
             return data
     b = None
-    while "reCAPTCHA could not be solved" in str(req_two) or b is None:
+    while "reCAPTCHA could not be solved" in str(req_two) or b is None or "'latin-1' codec can't encode characters in position" in str(req_two):
         p = get_enumproxy()
         b = req_two()
         return b
