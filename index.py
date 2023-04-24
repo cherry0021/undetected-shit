@@ -12,6 +12,7 @@ import urllib
 import asyncio
 from urllib.parse import unquote
 from gates.dax import process_all as dax_process_all
+from gates.payeezy import process_all as payeezy_process_all
 from playwright.sync_api import sync_playwright
 from playwright_recaptcha import recaptchav2
 from lumi import Lumi
@@ -39,6 +40,8 @@ profile = generate_profile()
 #----------endpoints functions----------
 def daxko_gate(card):
     return  json.dumps(dax_process_all(card, profile))   
+def payeezy_gate(card):
+    return  json.dumps(payeezy_process_all(card, profile))   
 
 app = Lumi()
 
@@ -58,7 +61,7 @@ app = Lumi()
 #     return a + b
 
 app.register(daxko_gate, route="/daxko")
-
+app.register(payeezy_gate, route="/payeezy")
 
 
 
