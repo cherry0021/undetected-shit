@@ -23,6 +23,18 @@ import psutil
 from gates.utils.browser_profile import generate_profile
 
 
+def count_checks(value):
+    with open("inputs/check_count.txt", "w") as f:
+        value = str(value)
+        f.write(value)
+    f.close
+    return True
+def read_checks():
+    with open("inputs/check_count.txt", "r") as f:
+        cnt: str = f.read()
+    f.close
+    return cnt
+
 def terminate_session():
     for proc in psutil.process_iter():
         try:
@@ -37,10 +49,31 @@ def terminate_session():
 
 terminate_session()
 profile = generate_profile()
+# count_checks("0")
 #----------endpoints functions----------
 def daxko_gate(card):
+    # c= read_checks()
+    # c = int(c) + 1
+    # if int(c) >= 10:
+    #     prof = generate_profile()
+    #     count_checks("0")
+    #     return  json.dumps(payeezy_process_all(card, prof))   
+    # else:
+    #     count_checks(str(c))
+    #     prof = profile
+    #     return  json.dumps(dax_process_all(card, prof))   
     return  json.dumps(dax_process_all(card, profile))   
 def payeezy_gate(card):
+    # c= read_checks()
+    # c = int(c) + 1
+    # if int(c) >= 10:
+    #     prof = generate_profile()
+    #     count_checks("0")
+    #     return  json.dumps(payeezy_process_all(card, prof))   
+    # else:
+    #     count_checks(str(c))
+    #     prof = profile
+    #     return  json.dumps(payeezy_process_all(card, prof))   
     return  json.dumps(payeezy_process_all(card, profile))   
 
 app = Lumi()

